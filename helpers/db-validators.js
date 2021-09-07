@@ -28,6 +28,7 @@ const existeUsuarioxId = async (id = '') => {
 
 
 
+
 module.exports = {
     esRoleValido,
     existeEmail,
