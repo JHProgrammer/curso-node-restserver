@@ -1,7 +1,8 @@
-const { response } = require('express');
+const { response, request } = require('express');
 const Usuario = require('../models/usuario');
 const bcryptjs = require('bcryptjs');
 const { generarJWT } = require('../helpers/generar-jwt');
+const { googleVerify } = require('../helpers/google-verify');
 
 
 const login = async( req, res = response) => {
@@ -51,7 +52,54 @@ const login = async( req, res = response) => {
 
 }
 
+const googleSingin = async(req = request, res = response) => {
+
+    const { id_token } = req.body;
+
+    try {
+        const {correo,nombre,img} = await googleVerify(id_token);
+
+        let usuario = await Usuario.findOne({ correo });
+
+        if( !usuario ){
+            const data = {
+                nombre,
+                correo,
+                password: ':p',
+                img,
+                google: true
+            };
+
+            usuario = new Usuario( data );
+            await usuario.save();
+        }
+
+        //Si el usuario en DB esta borrado
+        if ( !usuario.estado ){
+            res.status(401).json({
+                msj: 'Usuario bloqueado'
+            })
+        }
+
+        //Generar JWT
+        const token = await generarJWT( usuario.id);
+
+        res.json({
+            msg: 'todo bien Google Sing in',
+            usuario,
+            token
+        })
+
+    } catch (error) {
+        res.status(400).json({
+            msj: 'Token de google no es valido'
+        })
+    }
+
+}
+
 
 module.exports = {
-    login
+    login,
+    googleSingin
 }
